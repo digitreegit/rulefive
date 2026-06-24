@@ -1,0 +1,171 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+
+type Settings = {
+  symbol: string;
+  thresholdPercent: number;
+  enabled: boolean;
+  referencePrice: number | null;
+  manualInvestedOverride: number | null;
+  lastRunAt?: string | null;
+  lastAction?: string | null;
+};
+
+export default function SettingsForm() {
+  const [s, setS] = useState<Settings | null>(null);
+  const [symbol, setSymbol] = useState("");
+  const [threshold, setThreshold] = useState("5");
+  const [invested, setInvested] = useState("");
+  const [status, setStatus] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const res = await fetch("/api/settings", { cache: "no-store" });
+      const data = await res.json();
+      setS(data);
+      setSymbol(data.symbol ?? "");
+      setThreshold(String(data.thresholdPercent ?? 5));
+      setInvested(
+        data.manualInvestedOverride != null
+          ? String(data.manualInvestedOverride)
+          : ""
+      );
+    })();
+  }, []);
+
+  async function save(extra: Record<string, unknown> = {}) {
+    setSaving(true);
+    setStatus("");
+    try {
+      const res = await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          symbol,
+          thresholdPercent: Number(threshold),
+          manualInvestedOverride: invested === "" ? null : Number(invested),
+          ...extra,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setStatus(data.error ?? "Save failed.");
+        return;
+      }
+      setS((prev) => ({ ...(prev as Settings), ...data }));
+      setStatus("Saved.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <main className="mx-auto max-w-2xl px-4 py-8">
+      <header className="mb-8 flex items-center justify-between">
+        <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
+        <Link
+          href="/"
+          className="rounded-lg bg-panel px-3 py-2 text-sm ring-1 ring-white/10 hover:bg-panel2"
+        >
+          ← Dashboard
+        </Link>
+      </header>
+
+      {!s ? (
+        <div className="text-muted">Loading…</div>
+      ) : (
+        <div className="space-y-6">
+          <div className="rounded-2xl bg-panel p-5 ring-1 ring-white/5">
+            <label className="mb-1 block text-sm font-medium">
+              Symbol to trade
+            </label>
+            <p className="mb-2 text-xs text-muted">
+              Crypto uses a slash, e.g. <code>XRP/USD</code>, <code>BTC/USD</code>.
+              Stocks are plain tickers, e.g. <code>TSLA</code>. Changing this
+              re-anchors the reference price on the next check.
+            </p>
+            <input
+              value={symbol}
+              onChange={(e) => setSymbol(e.target.value)}
+              className="w-full rounded-lg bg-ink px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-accent"
+            />
+          </div>
+
+          <div className="rounded-2xl bg-panel p-5 ring-1 ring-white/5">
+            <label className="mb-1 block text-sm font-medium">
+              Swing threshold (%)
+            </label>
+            <p className="mb-2 text-xs text-muted">
+              Buy after a drop of this %, sell after a rise of this % (from the
+              last trade price). Default is 5%.
+            </p>
+            <input
+              type="number"
+              min="0.1"
+              max="90"
+              step="0.1"
+              value={threshold}
+              onChange={(e) => setThreshold(e.target.value)}
+              className="w-full rounded-lg bg-ink px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-accent"
+            />
+          </div>
+
+          <div className="rounded-2xl bg-panel p-5 ring-1 ring-white/5">
+            <label className="mb-1 block text-sm font-medium">
+              Total invested override (optional)
+            </label>
+            <p className="mb-2 text-xs text-muted">
+              Leave blank to read net deposits straight from Alpaca. Set a number
+              (e.g. 500) if your account does not report transfers.
+            </p>
+            <input
+              type="number"
+              step="0.01"
+              placeholder="(auto from Alpaca)"
+              value={invested}
+              onChange={(e) => setInvested(e.target.value)}
+              className="w-full rounded-lg bg-ink px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-accent"
+            />
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => save()}
+              disabled={saving}
+              className="rounded-lg bg-accent px-4 py-2 font-medium text-white transition hover:opacity-90 disabled:opacity-50"
+            >
+              {saving ? "Saving…" : "Save settings"}
+            </button>
+            <button
+              onClick={() => save({ resetReference: true })}
+              disabled={saving}
+              className="rounded-lg bg-panel2 px-4 py-2 text-sm ring-1 ring-white/10 hover:opacity-90 disabled:opacity-50"
+            >
+              Reset reference price
+            </button>
+            {status && <span className="text-sm text-muted">{status}</span>}
+          </div>
+
+          <div className="rounded-2xl bg-panel2 p-5 text-sm text-muted ring-1 ring-white/5">
+            <div>
+              Current reference price:{" "}
+              <span className="text-white">
+                {s.referencePrice != null ? s.referencePrice : "not set"}
+              </span>
+            </div>
+            <div className="mt-1">
+              Bot is{" "}
+              <span className={s.enabled ? "text-good" : "text-bad"}>
+                {s.enabled ? "running" : "stopped"}
+              </span>{" "}
+              (toggle from the dashboard).
+            </div>
+          </div>
+        </div>
+      )}
+    </main>
+  );
+}
