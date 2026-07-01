@@ -26,7 +26,7 @@ export const AUTH_SECRET = process.env.AUTH_SECRET ?? "";
 
 // Defaults used when the bot_config row has not been customized yet.
 export const DEFAULTS = {
-  symbol: "XRP/USD",
+  symbol: "AVAX/USD",
   thresholdPercent: 5,
   enabled: false,
 };
