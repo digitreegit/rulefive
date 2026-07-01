@@ -1,8 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import {
+  ArrowTrendingDownIcon,
+  ArrowTrendingUpIcon,
+  MinusIcon,
+} from "@heroicons/react/24/outline";
+import BackToDashboardLink from "@/components/BackToDashboardLink";
+import {
+  ChartBarSquareIcon,
+} from "@heroicons/react/24/outline";
 import {
   Area,
   AreaChart,
@@ -71,7 +79,10 @@ export default function ChartView() {
     <main className="mx-auto max-w-5xl px-4 py-8">
       <header className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Chart</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
+            <ChartBarSquareIcon className="h-7 w-7 text-accent" aria-hidden />
+            Chart
+          </h1>
           <p className="text-sm text-muted">
             {data
               ? `${data.symbol} · last 7 days (1h)`
@@ -80,12 +91,7 @@ export default function ChartView() {
               : "—"}
           </p>
         </div>
-        <Link
-          href="/"
-          className="rounded-lg bg-panel px-3 py-2 text-sm ring-1 ring-white/10 hover:bg-panel2"
-        >
-          ← Dashboard
-        </Link>
+        <BackToDashboardLink />
       </header>
 
       {error && (
@@ -125,20 +131,20 @@ export default function ChartView() {
           <div className="rounded-2xl bg-panel p-5 ring-1 ring-white/5">
             <div className="mb-4 flex flex-wrap gap-4 text-xs text-muted">
               {data.referencePrice != null && (
-                <span>
-                  <span className="inline-block h-2 w-2 rounded-full bg-accent" />{" "}
+                <span className="inline-flex items-center gap-1">
+                  <MinusIcon className="h-4 w-4 text-accent" aria-hidden />
                   Reference {num(data.referencePrice)}
                 </span>
               )}
               {data.buyLevel != null && (
-                <span>
-                  <span className="inline-block h-2 w-2 rounded-full bg-good" />{" "}
+                <span className="inline-flex items-center gap-1">
+                  <ArrowTrendingDownIcon className="h-4 w-4 text-good" aria-hidden />
                   Buy −{data.thresholdPercent}% ({num(data.buyLevel)})
                 </span>
               )}
               {data.sellLevel != null && (
-                <span>
-                  <span className="inline-block h-2 w-2 rounded-full bg-bad" />{" "}
+                <span className="inline-flex items-center gap-1">
+                  <ArrowTrendingUpIcon className="h-4 w-4 text-bad" aria-hidden />
                   Sell +{data.thresholdPercent}% ({num(data.sellLevel)})
                 </span>
               )}

@@ -4,6 +4,17 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  ArrowTrendingDownIcon,
+  ArrowTrendingUpIcon,
+  ChartBarIcon,
+  Cog6ToothIcon,
+  ArrowRightOnRectangleIcon,
+  PlayCircleIcon,
+  StopCircleIcon,
+  PlayIcon,
+  StopIcon,
+} from "@heroicons/react/24/outline";
+import {
   Area,
   AreaChart,
   ResponsiveContainer,
@@ -145,20 +156,23 @@ export default function Dashboard() {
         <div className="flex items-center gap-2">
           <Link
             href="/chart"
-            className="rounded-lg bg-panel px-3 py-2 text-sm ring-1 ring-white/10 hover:bg-panel2"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-panel px-3 py-2 text-sm ring-1 ring-white/10 hover:bg-panel2"
           >
+            <ChartBarIcon className="h-4 w-4" aria-hidden />
             Chart
           </Link>
           <Link
             href="/settings"
-            className="rounded-lg bg-panel px-3 py-2 text-sm ring-1 ring-white/10 hover:bg-panel2"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-panel px-3 py-2 text-sm ring-1 ring-white/10 hover:bg-panel2"
           >
+            <Cog6ToothIcon className="h-4 w-4" aria-hidden />
             Settings
           </Link>
           <button
             onClick={logout}
-            className="rounded-lg bg-panel px-3 py-2 text-sm ring-1 ring-white/10 hover:bg-panel2"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-panel px-3 py-2 text-sm ring-1 ring-white/10 hover:bg-panel2"
           >
+            <ArrowRightOnRectangleIcon className="h-4 w-4" aria-hidden />
             Sign out
           </button>
         </div>
@@ -178,11 +192,16 @@ export default function Dashboard() {
             <div>
               <div className="text-sm text-muted">Bot status</div>
               <div
-                className={`mt-1 text-lg font-semibold ${
+                className={`mt-1 flex items-center gap-1.5 text-lg font-semibold ${
                   data.config.enabled ? "text-good" : "text-muted"
                 }`}
               >
-                {data.config.enabled ? "● Running" : "○ Stopped"}
+                {data.config.enabled ? (
+                  <PlayCircleIcon className="h-5 w-5" aria-hidden />
+                ) : (
+                  <StopCircleIcon className="h-5 w-5" aria-hidden />
+                )}
+                {data.config.enabled ? "Running" : "Stopped"}
               </div>
               <div className="mt-1 text-xs text-muted">
                 Last check {timeAgo(data.config.lastRunAt)} ·{" "}
@@ -192,11 +211,21 @@ export default function Dashboard() {
             <button
               onClick={toggleBot}
               disabled={toggling}
-              className={`rounded-lg px-4 py-2 font-medium text-white transition disabled:opacity-50 ${
+              className={`inline-flex items-center gap-1.5 rounded-lg px-4 py-2 font-medium text-white transition disabled:opacity-50 ${
                 data.config.enabled ? "bg-bad hover:opacity-90" : "bg-good hover:opacity-90"
               }`}
             >
-              {data.config.enabled ? "Stop" : "Start"}
+              {data.config.enabled ? (
+                <>
+                  <StopIcon className="h-4 w-4" aria-hidden />
+                  Stop
+                </>
+              ) : (
+                <>
+                  <PlayIcon className="h-4 w-4" aria-hidden />
+                  Start
+                </>
+              )}
             </button>
           </div>
 
@@ -331,12 +360,17 @@ export default function Dashboard() {
                       key={i}
                       className="flex items-center justify-between border-b border-white/5 pb-2 text-sm last:border-0"
                     >
-                      <div>
+                      <div className="flex items-center">
                         <span
-                          className={`mr-2 font-semibold uppercase ${
+                          className={`mr-2 inline-flex items-center gap-1 font-semibold uppercase ${
                             t.side === "buy" ? "text-good" : "text-bad"
                           }`}
                         >
+                          {t.side === "buy" ? (
+                            <ArrowTrendingUpIcon className="h-4 w-4" aria-hidden />
+                          ) : (
+                            <ArrowTrendingDownIcon className="h-4 w-4" aria-hidden />
+                          )}
                           {t.side}
                         </span>
                         <span className="text-muted">{t.symbol}</span>
