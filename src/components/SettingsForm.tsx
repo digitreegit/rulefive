@@ -16,6 +16,8 @@ type Settings = {
 export default function SettingsForm() {
   const [s, setS] = useState<Settings | null>(null);
   const [symbol, setSymbol] = useState("");
+  const [symbols, setSymbols] = useState<string[]>([]);
+  const [symbolsError, setSymbolsError] = useState("");
   const [threshold, setThreshold] = useState("5");
   const [invested, setInvested] = useState("");
   const [status, setStatus] = useState("");
@@ -23,8 +25,11 @@ export default function SettingsForm() {
 
   useEffect(() => {
     (async () => {
-      const res = await fetch("/api/settings", { cache: "no-store" });
-      const data = await res.json();
+      const [settingsRes, symbolsRes] = await Promise.all([
+        fetch("/api/settings", { cache: "no-store" }),
+        fetch("/api/crypto-symbols", { cache: "no-store" }),
+      ]);
+      const data = await settingsRes.json();
       setS(data);
       setSymbol(data.symbol ?? "");
       setThreshold(String(data.thresholdPercent ?? 5));
@@ -33,6 +38,19 @@ export default function SettingsForm() {
           ? String(data.manualInvestedOverride)
           : ""
       );
+
+      if (symbolsRes.ok) {
+        const symData = await symbolsRes.json();
+        const list: string[] = symData.symbols ?? [];
+        const current = (data.symbol ?? "").toUpperCase();
+        if (current && !list.includes(current)) {
+          list.unshift(current);
+        }
+        setSymbols(list.sort((a, b) => a.localeCompare(b)));
+      } else {
+        const err = await symbolsRes.json().catch(() => ({}));
+        setSymbolsError(err.error ?? "Could not load symbol list.");
+      }
     })();
   }, []);
 
@@ -83,15 +101,28 @@ export default function SettingsForm() {
               Symbol to trade
             </label>
             <p className="mb-2 text-xs text-muted">
-              Crypto uses a slash, e.g. <code>XRP/USD</code>, <code>BTC/USD</code>.
-              Stocks are plain tickers, e.g. <code>TSLA</code>. Changing this
-              re-anchors the reference price on the next check.
+              Choose a crypto pair from Alpaca. Changing the symbol re-anchors
+              the reference price on the next check.
             </p>
-            <input
+            {symbolsError && (
+              <p className="mb-2 text-xs text-bad">{symbolsError}</p>
+            )}
+            <select
               value={symbol}
               onChange={(e) => setSymbol(e.target.value)}
-              className="w-full rounded-lg bg-ink px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-accent"
-            />
+              disabled={symbols.length === 0}
+              className="w-full rounded-lg bg-ink px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-accent disabled:opacity-50"
+            >
+              {symbols.length === 0 ? (
+                <option value="">Loading symbols…</option>
+              ) : (
+                symbols.map((sym) => (
+                  <option key={sym} value={sym}>
+                    {sym}
+                  </option>
+                ))
+              )}
+            </select>
           </div>
 
           <div className="rounded-2xl bg-panel p-5 ring-1 ring-white/5">

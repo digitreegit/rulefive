@@ -137,7 +137,26 @@ export async function getRecentOrders(limit = 20): Promise<AlpacaOrder[]> {
   );
 }
 
-// ── Market data: latest price ───────────────────────────────────────────────
+type AlpacaAsset = {
+  symbol: string;
+  name: string;
+  status: string;
+  tradable: boolean;
+  class: string;
+};
+
+// Active, tradable crypto pairs quoted in USD (e.g. BTC/USD, AVAX/USD).
+export async function getTradableCryptoUsdSymbols(): Promise<string[]> {
+  const assets = await tradingGet<AlpacaAsset[]>(
+    "/v2/assets?asset_class=crypto&status=active"
+  );
+  return assets
+    .filter((a) => a.tradable && a.symbol.endsWith("/USD"))
+    .map((a) => a.symbol)
+    .sort((a, b) => a.localeCompare(b));
+}
+
+// ── Market data: bars & latest price ────────────────────────────────────────
 
 export type PriceBar = {
   t: number;

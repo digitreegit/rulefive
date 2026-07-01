@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAuthed } from "@/lib/auth";
 import { getConfig, updateConfig } from "@/lib/supabase";
+import { getTradableCryptoUsdSymbols } from "@/lib/alpaca";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,8 +30,15 @@ export async function POST(req: NextRequest) {
   const patch: Record<string, unknown> = {};
 
   if (typeof body.symbol === "string" && body.symbol.trim()) {
-    patch.symbol = body.symbol.trim().toUpperCase();
-    // Changing the traded symbol invalidates the old reference price.
+    const next = body.symbol.trim().toUpperCase();
+    const allowed = await getTradableCryptoUsdSymbols();
+    if (!allowed.includes(next)) {
+      return NextResponse.json(
+        { error: `Symbol not supported: ${next}` },
+        { status: 400 }
+      );
+    }
+    patch.symbol = next;
     patch.reference_price = null;
   }
   if (body.thresholdPercent != null) {
