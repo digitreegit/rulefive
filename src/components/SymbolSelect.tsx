@@ -21,7 +21,7 @@ export default function SymbolSelect({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled || options.length === 0}
-        className="w-full appearance-none rounded-lg bg-ink py-2 pl-3 pr-10 outline-none ring-1 ring-white/10 focus:ring-accent disabled:opacity-50"
+        className="symbol-select w-full cursor-pointer appearance-none rounded-lg bg-ink py-2 pl-3 pr-10 outline-none ring-1 ring-white/10 focus:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
       >
         {options.length === 0 ? (
           <option value="">{placeholder}</option>
@@ -34,7 +34,7 @@ export default function SymbolSelect({
         )}
       </select>
       <ChevronDownIcon
-        className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted"
+        className="pointer-events-none absolute right-3 top-1/2 z-10 h-5 w-5 -translate-y-1/2 text-white/70"
         aria-hidden
       />
     </div>
