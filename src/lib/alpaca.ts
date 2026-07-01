@@ -139,6 +139,78 @@ export async function getRecentOrders(limit = 20): Promise<AlpacaOrder[]> {
 
 // ── Market data: latest price ───────────────────────────────────────────────
 
+export type PriceBar = {
+  t: number;
+  o: number;
+  h: number;
+  l: number;
+  c: number;
+  v: number;
+};
+
+export async function getBars(
+  symbol: string,
+  timeframe = "1Hour",
+  limit = 168
+): Promise<PriceBar[]> {
+  if (isCrypto(symbol)) {
+    const qs = new URLSearchParams({
+      symbols: symbol,
+      timeframe,
+      limit: String(limit),
+    });
+    const url = `${ALPACA.dataBaseUrl}/v1beta3/crypto/us/bars?${qs.toString()}`;
+    const res = await fetch(url, {
+      headers: tradingHeaders(),
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`Alpaca crypto bars ${symbol} -> ${res.status}: ${body}`);
+    }
+    const json = (await res.json()) as {
+      bars: Record<
+        string,
+        { t: string; o: number; h: number; l: number; c: number; v: number }[]
+      >;
+    };
+    const rows = json.bars?.[symbol] ?? [];
+    return rows.map((b) => ({
+      t: new Date(b.t).getTime(),
+      o: b.o,
+      h: b.h,
+      l: b.l,
+      c: b.c,
+      v: b.v,
+    }));
+  }
+
+  const qs = new URLSearchParams({
+    timeframe,
+    limit: String(limit),
+    feed: "iex",
+  });
+  const url = `${ALPACA.dataBaseUrl}/v2/stocks/${encodeURIComponent(
+    symbol
+  )}/bars?${qs.toString()}`;
+  const res = await fetch(url, { headers: tradingHeaders(), cache: "no-store" });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Alpaca stock bars ${symbol} -> ${res.status}: ${body}`);
+  }
+  const json = (await res.json()) as {
+    bars: { t: string; o: number; h: number; l: number; c: number; v: number }[];
+  };
+  return (json.bars ?? []).map((b) => ({
+    t: new Date(b.t).getTime(),
+    o: b.o,
+    h: b.h,
+    l: b.l,
+    c: b.c,
+    v: b.v,
+  }));
+}
+
 export async function getLatestPrice(symbol: string): Promise<number> {
   if (isCrypto(symbol)) {
     const qs = new URLSearchParams({ symbols: symbol });

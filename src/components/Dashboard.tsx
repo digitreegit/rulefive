@@ -144,6 +144,12 @@ export default function Dashboard() {
         </div>
         <div className="flex items-center gap-2">
           <Link
+            href="/chart"
+            className="rounded-lg bg-panel px-3 py-2 text-sm ring-1 ring-white/10 hover:bg-panel2"
+          >
+            Chart
+          </Link>
+          <Link
             href="/settings"
             className="rounded-lg bg-panel px-3 py-2 text-sm ring-1 ring-white/10 hover:bg-panel2"
           >
