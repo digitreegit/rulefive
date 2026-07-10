@@ -145,15 +145,166 @@ type AlpacaAsset = {
   class: string;
 };
 
-// Active, tradable crypto pairs quoted in USD (e.g. BTC/USD, AVAX/USD).
-export async function getTradableCryptoUsdSymbols(): Promise<string[]> {
-  const assets = await tradingGet<AlpacaAsset[]>(
-    "/v2/assets?asset_class=crypto&status=active"
+// Liquid names often used as volatility candidates (screened down to top 20 live).
+const VOLATILE_STOCK_CANDIDATES = [
+  "TSLA",
+  "NVDA",
+  "AMD",
+  "META",
+  "COIN",
+  "MARA",
+  "RIOT",
+  "SOFI",
+  "PLTR",
+  "RKLB",
+  "SMCI",
+  "ARM",
+  "HOOD",
+  "GME",
+  "AMC",
+  "MSTR",
+  "RIVN",
+  "LCID",
+  "NIO",
+  "SNAP",
+  "DKNG",
+  "RBLX",
+  "NET",
+  "UPST",
+  "AFRM",
+  "CVNA",
+  "IONQ",
+  "CLSK",
+  "HIMS",
+  "APP",
+  "DUOL",
+  "MU",
+  "NFLX",
+  "CRWD",
+  "PANW",
+  "DDOG",
+  "SNOW",
+  "U",
+  "BBAI",
+  "SOUN",
+  "ACHR",
+  "JOBY",
+  "BITF",
+  "MRVL",
+  "AVGO",
+  "SHOP",
+  "PATH",
+  "CELH",
+  "LABU",
+  "TQQQ",
+];
+
+type MultiStockBarsResponse = {
+  bars: Record<string, { c: number; h: number; l: number }[]>;
+};
+
+let volatileSymbolsCache: { at: number; symbols: string[] } | null = null;
+const VOLATILE_CACHE_MS = 4 * 60 * 60 * 1000; // refresh ranking every 4 hours
+
+function stdDevDailyReturns(bars: { c: number }[]): number {
+  if (bars.length < 3) return 0;
+  const returns: number[] = [];
+  for (let i = 1; i < bars.length; i++) {
+    const prev = bars[i - 1].c;
+    if (prev <= 0) continue;
+    returns.push((bars[i].c - prev) / prev);
+  }
+  if (returns.length < 2) return 0;
+  const mean = returns.reduce((sum, r) => sum + r, 0) / returns.length;
+  const variance =
+    returns.reduce((sum, r) => sum + (r - mean) ** 2, 0) / returns.length;
+  return Math.sqrt(variance);
+}
+
+async function fetchStockDailyBars(
+  symbols: string[],
+  limit = 20
+): Promise<MultiStockBarsResponse["bars"]> {
+  const merged: MultiStockBarsResponse["bars"] = {};
+  const chunkSize = 25;
+  for (let i = 0; i < symbols.length; i += chunkSize) {
+    const chunk = symbols.slice(i, i + chunkSize);
+    const qs = new URLSearchParams({
+      symbols: chunk.join(","),
+      timeframe: "1Day",
+      limit: String(limit),
+      feed: "iex",
+    });
+    const url = `${ALPACA.dataBaseUrl}/v2/stocks/bars?${qs.toString()}`;
+    const res = await fetch(url, {
+      headers: tradingHeaders(),
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`Alpaca stock bars batch -> ${res.status}: ${body}`);
+    }
+    const json = (await res.json()) as MultiStockBarsResponse;
+    Object.assign(merged, json.bars ?? {});
+  }
+  return merged;
+}
+
+async function isTradableUsEquity(symbol: string): Promise<boolean> {
+  try {
+    const asset = await tradingGet<AlpacaAsset>(
+      `/v2/assets/${encodeURIComponent(symbol)}`
+    );
+    return (
+      asset.tradable && asset.status === "active" && asset.class === "us_equity"
+    );
+  } catch {
+    return false;
+  }
+}
+
+// Rank candidate US equities by recent daily-return volatility; return top N.
+export async function getTopVolatileStockSymbols(limit = 20): Promise<string[]> {
+  const now = Date.now();
+  if (
+    volatileSymbolsCache &&
+    now - volatileSymbolsCache.at < VOLATILE_CACHE_MS &&
+    volatileSymbolsCache.symbols.length >= limit
+  ) {
+    return volatileSymbolsCache.symbols.slice(0, limit);
+  }
+
+  const barsBySymbol = await fetchStockDailyBars(VOLATILE_STOCK_CANDIDATES, 20);
+  const ranked = VOLATILE_STOCK_CANDIDATES.map((symbol) => ({
+    symbol,
+    volatility: stdDevDailyReturns(barsBySymbol[symbol] ?? []),
+  }))
+    .filter((row) => row.volatility > 0)
+    .sort((a, b) => b.volatility - a.volatility);
+
+  let symbols = ranked.slice(0, limit * 2).map((row) => row.symbol);
+
+  if (symbols.length < limit) {
+    const fallback = VOLATILE_STOCK_CANDIDATES.filter((s) => !symbols.includes(s));
+    symbols = [...symbols, ...fallback].slice(0, limit * 2);
+  }
+
+  const tradableResults = await Promise.all(
+    symbols.map(async (symbol) => ({
+      symbol,
+      ok: await isTradableUsEquity(symbol),
+    }))
   );
-  return assets
-    .filter((a) => a.tradable && a.symbol.endsWith("/USD"))
-    .map((a) => a.symbol)
-    .sort((a, b) => a.localeCompare(b));
+  const tradable = tradableResults.filter((r) => r.ok).map((r) => r.symbol);
+
+  if (tradable.length === 0) {
+    const fallback = ["TSLA", "NVDA", "AMD", "COIN", "MARA"].slice(0, limit);
+    volatileSymbolsCache = { at: now, symbols: fallback };
+    return fallback;
+  }
+
+  volatileSymbolsCache = { at: now, symbols: tradable.slice(0, limit) };
+  return tradable.slice(0, limit);
 }
 
 // ── Market data: bars & latest price ────────────────────────────────────────

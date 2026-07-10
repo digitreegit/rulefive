@@ -4,7 +4,7 @@
 -- Single-row table holding the bot configuration and live state.
 create table if not exists public.bot_config (
   id int primary key default 1,
-  symbol text not null default 'AVAX/USD',
+  symbol text not null default 'TSLA',
   threshold_percent numeric not null default 5,
   enabled boolean not null default false,
   reference_price numeric,

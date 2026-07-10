@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAuthed } from "@/lib/auth";
 import { getConfig, updateConfig } from "@/lib/supabase";
-import { getTradableCryptoUsdSymbols } from "@/lib/alpaca";
+import { getTopVolatileStockSymbols } from "@/lib/alpaca";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,7 +31,13 @@ export async function POST(req: NextRequest) {
 
   if (typeof body.symbol === "string" && body.symbol.trim()) {
     const next = body.symbol.trim().toUpperCase();
-    const allowed = await getTradableCryptoUsdSymbols();
+    if (next.includes("/")) {
+      return NextResponse.json(
+        { error: "Crypto symbols are not supported. Choose a US stock." },
+        { status: 400 }
+      );
+    }
+    const allowed = await getTopVolatileStockSymbols(20);
     if (!allowed.includes(next)) {
       return NextResponse.json(
         { error: `Symbol not supported: ${next}` },

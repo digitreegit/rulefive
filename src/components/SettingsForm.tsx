@@ -29,7 +29,7 @@ export default function SettingsForm() {
     (async () => {
       const [settingsRes, symbolsRes] = await Promise.all([
         fetch("/api/settings", { cache: "no-store" }),
-        fetch("/api/crypto-symbols", { cache: "no-store" }),
+        fetch("/api/stock-symbols", { cache: "no-store" }),
       ]);
       const data = await settingsRes.json();
       setS(data);
@@ -98,11 +98,12 @@ export default function SettingsForm() {
         <div className="space-y-6">
           <div className="rounded-2xl bg-panel p-5 ring-1 ring-white/5">
             <label className="mb-1 block text-sm font-medium">
-              Symbol to trade
+              Stock symbol to trade
             </label>
             <p className="mb-2 text-xs text-muted">
-              Choose a crypto pair from Alpaca. Changing the symbol re-anchors
-              the reference price on the next check.
+              Top 20 US stocks ranked by recent daily volatility (refreshed every
+              few hours). Changing the symbol re-anchors the reference price on
+              the next check. Trades only execute during US market hours.
             </p>
             {symbolsError && (
               <p className="mb-2 text-xs text-bad">{symbolsError}</p>
