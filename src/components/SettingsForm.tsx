@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import BackToDashboardLink from "@/components/BackToDashboardLink";
 import SymbolSelect from "@/components/SymbolSelect";
 import { Cog6ToothIcon, PlayCircleIcon, StopCircleIcon } from "@heroicons/react/24/outline";
+import { isStockSymbol, FALLBACK_VOLATILE_STOCKS } from "@/lib/config";
 
 type Settings = {
   symbol: string;
@@ -41,18 +42,27 @@ export default function SettingsForm() {
           : ""
       );
 
+      let list: string[] = FALLBACK_VOLATILE_STOCKS;
+
       if (symbolsRes.ok) {
         const symData = await symbolsRes.json();
-        const list: string[] = symData.symbols ?? [];
-        const current = (data.symbol ?? "").toUpperCase();
-        if (current && !list.includes(current)) {
-          list.unshift(current);
-        }
-        setSymbols(list.sort((a, b) => a.localeCompare(b)));
+        list = (symData.symbols ?? []).filter((s: string) => isStockSymbol(s));
+        if (list.length === 0) list = [...FALLBACK_VOLATILE_STOCKS];
       } else {
         const err = await symbolsRes.json().catch(() => ({}));
-        setSymbolsError(err.error ?? "Could not load symbol list.");
+        setSymbolsError(err.error ?? "Using default stock list.");
       }
+
+      const dbSymbol = (data.symbol ?? "").toUpperCase();
+      let nextSymbol = dbSymbol;
+      if (!isStockSymbol(dbSymbol)) {
+        nextSymbol = list[0] ?? "TSLA";
+      } else if (dbSymbol && !list.includes(dbSymbol)) {
+        list = [dbSymbol, ...list.filter((s) => s !== dbSymbol)];
+      }
+
+      setSymbol(nextSymbol);
+      setSymbols(list);
     })();
   }, []);
 

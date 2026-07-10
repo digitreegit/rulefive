@@ -1,4 +1,4 @@
-import { ALPACA, isCrypto } from "./config";
+import { ALPACA, FALLBACK_VOLATILE_STOCKS, isCrypto } from "./config";
 
 function tradingHeaders(): HeadersInit {
   return {
@@ -274,37 +274,41 @@ export async function getTopVolatileStockSymbols(limit = 20): Promise<string[]> 
     return volatileSymbolsCache.symbols.slice(0, limit);
   }
 
-  const barsBySymbol = await fetchStockDailyBars(VOLATILE_STOCK_CANDIDATES, 20);
-  const ranked = VOLATILE_STOCK_CANDIDATES.map((symbol) => ({
-    symbol,
-    volatility: stdDevDailyReturns(barsBySymbol[symbol] ?? []),
-  }))
-    .filter((row) => row.volatility > 0)
-    .sort((a, b) => b.volatility - a.volatility);
-
-  let symbols = ranked.slice(0, limit * 2).map((row) => row.symbol);
-
-  if (symbols.length < limit) {
-    const fallback = VOLATILE_STOCK_CANDIDATES.filter((s) => !symbols.includes(s));
-    symbols = [...symbols, ...fallback].slice(0, limit * 2);
-  }
-
-  const tradableResults = await Promise.all(
-    symbols.map(async (symbol) => ({
+  try {
+    const barsBySymbol = await fetchStockDailyBars(VOLATILE_STOCK_CANDIDATES, 20);
+    const ranked = VOLATILE_STOCK_CANDIDATES.map((symbol) => ({
       symbol,
-      ok: await isTradableUsEquity(symbol),
+      volatility: stdDevDailyReturns(barsBySymbol[symbol] ?? []),
     }))
-  );
-  const tradable = tradableResults.filter((r) => r.ok).map((r) => r.symbol);
+      .filter((row) => row.volatility > 0)
+      .sort((a, b) => b.volatility - a.volatility);
 
-  if (tradable.length === 0) {
-    const fallback = ["TSLA", "NVDA", "AMD", "COIN", "MARA"].slice(0, limit);
-    volatileSymbolsCache = { at: now, symbols: fallback };
-    return fallback;
+    let symbols = ranked.slice(0, limit * 2).map((row) => row.symbol);
+
+    if (symbols.length < limit) {
+      const extra = VOLATILE_STOCK_CANDIDATES.filter((s) => !symbols.includes(s));
+      symbols = [...symbols, ...extra].slice(0, limit * 2);
+    }
+
+    const tradableResults = await Promise.all(
+      symbols.map(async (symbol) => ({
+        symbol,
+        ok: await isTradableUsEquity(symbol),
+      }))
+    );
+    const tradable = tradableResults.filter((r) => r.ok).map((r) => r.symbol);
+
+    if (tradable.length > 0) {
+      volatileSymbolsCache = { at: now, symbols: tradable.slice(0, limit) };
+      return tradable.slice(0, limit);
+    }
+  } catch {
+    // Fall through to static list below.
   }
 
-  volatileSymbolsCache = { at: now, symbols: tradable.slice(0, limit) };
-  return tradable.slice(0, limit);
+  const fallback = FALLBACK_VOLATILE_STOCKS.slice(0, limit);
+  volatileSymbolsCache = { at: now, symbols: fallback };
+  return fallback;
 }
 
 // ── Market data: bars & latest price ────────────────────────────────────────

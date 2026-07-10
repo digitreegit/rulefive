@@ -35,6 +35,34 @@ export function isCrypto(symbol: string): boolean {
   return symbol.includes("/");
 }
 
+export function isStockSymbol(symbol: string): boolean {
+  return symbol.length > 0 && !isCrypto(symbol);
+}
+
+// Default stock picker list when live volatility ranking is unavailable.
+export const FALLBACK_VOLATILE_STOCKS = [
+  "TSLA",
+  "NVDA",
+  "AMD",
+  "META",
+  "COIN",
+  "MARA",
+  "RIOT",
+  "SOFI",
+  "PLTR",
+  "RKLB",
+  "SMCI",
+  "ARM",
+  "HOOD",
+  "GME",
+  "AMC",
+  "MSTR",
+  "RIVN",
+  "LCID",
+  "NIO",
+  "SNAP",
+];
+
 export function missingServerEnv(): string[] {
   const missing: string[] = [];
   if (!ALPACA.apiKey) missing.push("ALPACA_API_KEY");
