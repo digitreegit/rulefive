@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAuthed } from "@/lib/auth";
 import { getTopVolatileStockSymbols } from "@/lib/alpaca";
-import { FALLBACK_VOLATILE_STOCKS, missingServerEnv } from "@/lib/config";
+import { FALLBACK_VOLATILE_STOCKS, isStockSymbol, missingServerEnv } from "@/lib/config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,7 +18,7 @@ export async function GET() {
     );
   }
   try {
-    const symbols = await getTopVolatileStockSymbols(20);
+    const symbols = (await getTopVolatileStockSymbols(20)).filter(isStockSymbol);
     return NextResponse.json(
       { symbols },
       { headers: { "Cache-Control": "no-store" } }

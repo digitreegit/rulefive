@@ -1,4 +1,5 @@
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
+import { isStockSymbol } from "@/lib/config";
 
 type Props = {
   value: string;
@@ -15,18 +16,23 @@ export default function SymbolSelect({
   disabled = false,
   placeholder = "Loading symbols…",
 }: Props) {
+  const stockOptions = options.filter((sym) => isStockSymbol(sym));
+  const selected = stockOptions.includes(value)
+    ? value
+    : (stockOptions[0] ?? "");
+
   return (
     <div className="relative">
       <select
-        value={value}
+        value={selected}
         onChange={(e) => onChange(e.target.value)}
-        disabled={disabled || options.length === 0}
+        disabled={disabled || stockOptions.length === 0}
         className="symbol-select w-full cursor-pointer appearance-none rounded-lg bg-ink py-2 pl-3 pr-10 outline-none ring-1 ring-white/10 focus:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {options.length === 0 ? (
+        {stockOptions.length === 0 ? (
           <option value="">{placeholder}</option>
         ) : (
-          options.map((sym) => (
+          stockOptions.map((sym) => (
             <option key={sym} value={sym}>
               {sym}
             </option>

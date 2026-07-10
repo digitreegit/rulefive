@@ -34,7 +34,6 @@ export default function SettingsForm() {
       ]);
       const data = await settingsRes.json();
       setS(data);
-      setSymbol(data.symbol ?? "");
       setThreshold(String(data.thresholdPercent ?? 5));
       setInvested(
         data.manualInvestedOverride != null
@@ -63,6 +62,18 @@ export default function SettingsForm() {
 
       setSymbol(nextSymbol);
       setSymbols(list);
+
+      // Migrate legacy crypto symbol in DB so it does not reappear in the UI.
+      if (!isStockSymbol(dbSymbol) && nextSymbol) {
+        await fetch("/api/settings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ symbol: nextSymbol }),
+        }).catch(() => undefined);
+        setS((prev) =>
+          prev ? { ...prev, symbol: nextSymbol, referencePrice: null } : prev
+        );
+      }
     })();
   }, []);
 
