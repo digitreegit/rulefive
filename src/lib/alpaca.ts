@@ -1,4 +1,10 @@
-import { ALPACA, FALLBACK_VOLATILE_STOCKS, isCrypto } from "./config";
+import {
+  ALPACA,
+  FALLBACK_VOLATILE_STOCKS,
+  isCrypto,
+  mergeStockDropdownSymbols,
+  PINNED_DROPDOWN_STOCKS,
+} from "./config";
 
 function tradingHeaders(): HeadersInit {
   return {
@@ -269,7 +275,10 @@ export async function getTopVolatileStockSymbols(limit = 20): Promise<string[]> 
   if (
     volatileSymbolsCache &&
     now - volatileSymbolsCache.at < VOLATILE_CACHE_MS &&
-    volatileSymbolsCache.symbols.length >= limit
+    volatileSymbolsCache.symbols.length >= limit &&
+    PINNED_DROPDOWN_STOCKS.every((s) =>
+      volatileSymbolsCache!.symbols.includes(s)
+    )
   ) {
     return volatileSymbolsCache.symbols.slice(0, limit);
   }
@@ -299,14 +308,15 @@ export async function getTopVolatileStockSymbols(limit = 20): Promise<string[]> 
     const tradable = tradableResults.filter((r) => r.ok).map((r) => r.symbol);
 
     if (tradable.length > 0) {
-      volatileSymbolsCache = { at: now, symbols: tradable.slice(0, limit) };
-      return tradable.slice(0, limit);
+      const symbols = mergeStockDropdownSymbols(tradable, limit);
+      volatileSymbolsCache = { at: now, symbols };
+      return symbols;
     }
   } catch {
     // Fall through to static list below.
   }
 
-  const fallback = FALLBACK_VOLATILE_STOCKS.slice(0, limit);
+  const fallback = mergeStockDropdownSymbols(FALLBACK_VOLATILE_STOCKS, limit);
   volatileSymbolsCache = { at: now, symbols: fallback };
   return fallback;
 }

@@ -56,12 +56,27 @@ export const FALLBACK_VOLATILE_STOCKS = [
   "HOOD",
   "GME",
   "AMC",
+  "MU",
   "MSTR",
   "RIVN",
   "LCID",
   "NIO",
   "SNAP",
 ];
+
+// Always shown in Settings dropdown (merged ahead of volatility-ranked picks).
+export const PINNED_DROPDOWN_STOCKS = ["MU"];
+
+export function mergeStockDropdownSymbols(
+  ranked: string[],
+  limit = 20
+): string[] {
+  const merged = [
+    ...PINNED_DROPDOWN_STOCKS,
+    ...ranked.filter((s) => !PINNED_DROPDOWN_STOCKS.includes(s)),
+  ];
+  return merged.filter(isStockSymbol).slice(0, limit);
+}
 
 export function missingServerEnv(): string[] {
   const missing: string[] = [];

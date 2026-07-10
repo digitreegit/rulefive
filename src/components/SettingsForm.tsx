@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import BackToDashboardLink from "@/components/BackToDashboardLink";
 import SymbolSelect from "@/components/SymbolSelect";
 import { Cog6ToothIcon, PlayCircleIcon, StopCircleIcon } from "@heroicons/react/24/outline";
-import { isStockSymbol, FALLBACK_VOLATILE_STOCKS } from "@/lib/config";
+import { isStockSymbol, FALLBACK_VOLATILE_STOCKS, mergeStockDropdownSymbols } from "@/lib/config";
 
 type Settings = {
   symbol: string;
@@ -41,12 +41,17 @@ export default function SettingsForm() {
           : ""
       );
 
-      let list: string[] = FALLBACK_VOLATILE_STOCKS;
+      let list: string[] = mergeStockDropdownSymbols(FALLBACK_VOLATILE_STOCKS);
 
       if (symbolsRes.ok) {
         const symData = await symbolsRes.json();
-        list = (symData.symbols ?? []).filter((s: string) => isStockSymbol(s));
-        if (list.length === 0) list = [...FALLBACK_VOLATILE_STOCKS];
+        const ranked = (symData.symbols ?? []).filter((s: string) =>
+          isStockSymbol(s)
+        );
+        list =
+          ranked.length > 0
+            ? mergeStockDropdownSymbols(ranked)
+            : mergeStockDropdownSymbols(FALLBACK_VOLATILE_STOCKS);
       } else {
         const err = await symbolsRes.json().catch(() => ({}));
         setSymbolsError(err.error ?? "Using default stock list.");
