@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
     }
     patch.symbol = next;
     patch.reference_price = null;
+    patch.last_action = `symbol changed to ${next}`;
   }
   if (body.thresholdPercent != null) {
     const t = Number(body.thresholdPercent);
@@ -62,6 +63,7 @@ export async function POST(req: NextRequest) {
   // Allow a manual reset of the reference (re-anchor on next run).
   if (body.resetReference === true) {
     patch.reference_price = null;
+    patch.last_action = "reference reset — waiting for next check";
   }
 
   const cfg = await updateConfig(patch);

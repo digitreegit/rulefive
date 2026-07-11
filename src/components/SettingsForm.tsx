@@ -73,10 +73,19 @@ export default function SettingsForm() {
         await fetch("/api/settings", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ symbol: nextSymbol }),
+          body: JSON.stringify({
+            symbol: nextSymbol,
+          }),
         }).catch(() => undefined);
         setS((prev) =>
-          prev ? { ...prev, symbol: nextSymbol, referencePrice: null } : prev
+          prev
+            ? {
+                ...prev,
+                symbol: nextSymbol,
+                referencePrice: null,
+                lastAction: `symbol changed to ${nextSymbol}`,
+              }
+            : prev
         );
       }
     })();

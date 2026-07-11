@@ -206,6 +206,14 @@ export default function Dashboard() {
               <div className="mt-1 text-xs text-muted">
                 Last check {timeAgo(data.config.lastRunAt)} ·{" "}
                 {data.config.lastAction ?? "no activity yet"}
+                {data.config.lastAction?.includes("crypto orders not allowed") &&
+                  !data.config.symbol.includes("/") && (
+                    <span className="text-muted">
+                      {" "}
+                      (old crypto-era log — current symbol is{" "}
+                      {data.config.symbol})
+                    </span>
+                  )}
               </div>
             </div>
             <button
